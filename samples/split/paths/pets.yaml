@@ -1,0 +1,38 @@
+get:
+  summary: List all pets
+  operationId: listPets
+  tags: [pets]
+  parameters:
+    - name: limit
+      in: query
+      description: How many items to return at one time (max 100)
+      schema:
+        type: integer
+        format: int32
+  responses:
+    '200':
+      description: A page of pets.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: ../schemas/pet.yaml
+    default:
+      description: Unexpected error
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/error.yaml
+post:
+  summary: Create a pet
+  operationId: createPet
+  tags: [pets]
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/pet.yaml'
+  responses:
+    '201':
+      description: Created.

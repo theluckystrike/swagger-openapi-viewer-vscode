@@ -1,0 +1,33 @@
+openapi: 3.0.3
+info:
+  title: Split Pet Store
+  version: 2.0.0
+  description:
+    $ref: docs/intro.md
+servers:
+  - url: https://pets.example.com/v2
+paths:
+  /pets:
+    $ref: paths/pets.yaml
+  /pets/{petId}:
+    $ref: 'paths/pet-by-id.yaml'
+  /owners/{ownerId}:
+    get:
+      summary: Get an owner
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The owner.
+          content:
+            application/json:
+              schema:
+                $ref: schemas/owner.yaml
+components:
+  schemas:
+    Error:
+      $ref: './schemas/error.yaml'

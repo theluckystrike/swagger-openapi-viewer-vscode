@@ -1,0 +1,9 @@
+type: object
+description: A category can have a parent category (a cycle across files).
+properties:
+  id:
+    type: integer
+  name:
+    type: string
+  parent:
+    $ref: category.yaml

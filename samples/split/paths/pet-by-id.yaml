@@ -1,0 +1,24 @@
+parameters:
+  - name: petId
+    in: path
+    required: true
+    description: The id of the pet
+    schema:
+      type: string
+get:
+  summary: Info for a pet
+  operationId: showPetById
+  tags: [pets]
+  responses:
+    '200':
+      description: The pet.
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/pet.yaml
+    default:
+      description: Unexpected error
+      content:
+        application/json:
+          schema:
+            $ref: ../schemas/error.yaml

@@ -1,0 +1,71 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const root = path.join(__dirname, '..');
+const pkg = require('../package.json');
+const { buildHtml, csp } = require('../src/html');
+
+test('engines floor and types match OVX1 (^1.90.0, ~1.90.0)', () => {
+  assert.equal(pkg.engines.vscode, '^1.90.0');
+  assert.equal(pkg.devDependencies['@types/vscode'], '~1.90.0');
+});
+
+test('every word of each target phrase is in the display name', () => {
+  const name = pkg.displayName.toLowerCase();
+  for (const phrase of ['swagger viewer', 'openapi viewer', 'openapi preview', 'swagger preview', 'swagger', 'openapi 3.1']) {
+    for (const w of phrase.split(' ')) assert.ok(name.includes(w), `${w} (${phrase})`);
+  }
+});
+
+test('commands in package.json are the ones the extension registers', () => {
+  const src = fs.readFileSync(path.join(root, 'src/extension.js'), 'utf8') + fs.readFileSync(path.join(root, 'src/support.js'), 'utf8');
+  for (const c of pkg.contributes.commands) {
+    const id = c.command;
+    const short = id.split('.')[1];
+    assert.ok(src.includes(`'${id}'`) || src.includes(short), id);
+  }
+  assert.ok(pkg.activationEvents.includes('onWebviewPanel:openapiViewer.preview'));
+});
+
+test('the bundled Swagger UI is the version package.json names, with its licence', () => {
+  const js = fs.readFileSync(path.join(root, 'media/swagger-ui/swagger-ui-bundle.js'), 'utf8');
+  assert.ok(js.length > 1e6);
+  assert.ok(fs.readFileSync(path.join(root, 'media/swagger-ui/LICENSE'), 'utf8').includes('Apache License'));
+  assert.ok(fs.existsSync(path.join(root, 'vendor/yaml/LICENSE')));
+  assert.match(pkg.swaggerUiVersion, /^5\.\d+\.\d+$/);
+  const notices = fs.readFileSync(path.join(root, 'THIRD-PARTY-NOTICES.md'), 'utf8');
+  assert.ok(notices.includes('swagger-ui-dist ' + pkg.swaggerUiVersion));
+  assert.ok(notices.includes('yaml ' + require('../vendor/yaml/package.json').version));
+});
+
+test('CSP: nothing remote, scripts only by nonce, no connect, no frames', () => {
+  const c = csp('vscode-resource:', 'abc');
+  assert.match(c, /default-src 'none'/);
+  assert.match(c, /script-src 'nonce-abc'/);
+  assert.match(c, /connect-src 'none'/);
+  assert.match(c, /frame-src 'none'/);
+  assert.ok(!/https?:|\*/.test(c.replace('vscode-resource:', '')));
+  const html = buildHtml({ cspSource: 'vscode-resource:', title: '<x>', swaggerJs: 'a.js', swaggerCss: 'a.css', styleUri: 'b.css', scriptUri: 'c.js', referenceUri: 'd.js', nonce: 'n1' });
+  assert.ok(!html.includes('<x>'));
+  const scripts = html.match(/<script[^>]*>/g);
+  assert.equal(scripts.length, 3);
+  assert.ok(scripts.every(s => s.includes('nonce="n1"')));
+  assert.ok(!/https?:\/\//.test(html.replace(/https:\/\/(github\.com|marketplace\.visualstudio\.com)[^"' )]*/g, '')));
+});
+
+test('webview scripts have no eval and no remote URL', () => {
+  for (const f of ['media/preview.js', 'media/reference.js']) {
+    const s = fs.readFileSync(path.join(root, f), 'utf8');
+    assert.ok(!/\beval\(|new Function|innerHTML\s*=/.test(s), f);
+  }
+});
+
+test('vsix stays small: media and vendor under 4 MB', () => {
+  let total = 0;
+  const walk = d => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else total += fs.statSync(p).size; } };
+  walk(path.join(root, 'media')); walk(path.join(root, 'vendor')); walk(path.join(root, 'src'));
+  assert.ok(total < 4 * 1048576, String(total));
+});

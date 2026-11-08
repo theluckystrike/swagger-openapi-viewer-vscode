@@ -1,0 +1,14 @@
+test/**
+scripts/**
+samples/**
+images/**
+!images/readme-swagger-dark.png
+node_modules/**
+.github/**
+.e2e/**
+**/*.map
+icon.svg
+.gitignore
+dist/**
+*.vsix
+package-lock.json

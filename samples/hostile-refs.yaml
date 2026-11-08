@@ -1,0 +1,91 @@
+openapi: 3.1.0
+info:
+  title: Hostile $refs
+  version: 1.0.0
+  description: Refs that must not be followed, plus cycles. The viewer must not read outside the workspace and must not make a network request.
+paths:
+  /passwd:
+    get:
+      summary: Relative path out of the workspace
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '../../../../../../../../etc/passwd'
+  /abs:
+    get:
+      summary: Absolute paths and file URLs
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '/etc/passwd'
+                  - $ref: 'file:///etc/hosts'
+                  - $ref: 'C:\Windows\win.ini'
+                  - $ref: '~/.ssh/id_rsa'
+  /metadata:
+    get:
+      summary: Cloud metadata and other remote refs
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: 'http://169.254.169.254/latest/meta-data/iam/security-credentials/'
+                  - $ref: 'https://attacker.example/schema.json'
+                  - $ref: 'javascript:alert(1)'
+                  - $ref: 'data:application/json,{"type":"string"}'
+  /cycle:
+    get:
+      summary: Cycles
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A'
+  /missing:
+    get:
+      summary: Missing internal target
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoesNotExist'
+  /self:
+    get:
+      summary: A ref that points to itself
+      responses:
+        '200':
+          $ref: '#/paths/~1self/get/responses/200'
+components:
+  schemas:
+    A:
+      type: object
+      properties:
+        b:
+          $ref: '#/components/schemas/B'
+    B:
+      type: object
+      properties:
+        a:
+          $ref: '#/components/schemas/A'
+        self:
+          $ref: '#/components/schemas/B'
+    Proto:
+      type: object
+      properties:
+        __proto__:
+          type: string
+        constructor:
+          type: string

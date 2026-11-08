@@ -1,0 +1,144 @@
+openapi: 3.1.0
+info:
+  title: Museum Tickets API
+  version: 1.2.0
+  summary: Book tickets and see special events at a small city museum.
+  description: |
+    A sample **OpenAPI 3.1** file for the viewer. It uses `type` lists with `"null"`,
+    `webhooks`, `examples` and a `const` value.
+
+    | Plan | Price |
+    |------|-------|
+    | Adult | 12 |
+    | Child | 6 |
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: https://api.museum.example/v1
+    description: Production
+tags:
+  - name: Tickets
+    description: Buy and look up tickets.
+  - name: Events
+    description: Special events.
+paths:
+  /tickets:
+    post:
+      tags: [Tickets]
+      summary: Buy a ticket
+      operationId: buyTicket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketRequest'
+            examples:
+              adult:
+                summary: One adult ticket
+                value: { ticketType: adult, ticketDate: '2026-12-01', email: visitor@example.com }
+      responses:
+        '201':
+          description: Ticket bought.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /tickets/{ticketId}:
+    parameters:
+      - name: ticketId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Tickets]
+      summary: Get a ticket
+      operationId: getTicket
+      responses:
+        '200':
+          description: The ticket.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '404':
+          description: No ticket with this id.
+  /events:
+    get:
+      tags: [Events]
+      summary: List special events
+      operationId: listEvents
+      parameters:
+        - name: startDate
+          in: query
+          schema: { type: [string, 'null'], format: date }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+      responses:
+        '200':
+          description: A page of events.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+webhooks:
+  newEvent:
+    post:
+      summary: A new special event was added
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+      responses:
+        '200':
+          description: The webhook was received.
+components:
+  schemas:
+    TicketRequest:
+      type: object
+      required: [ticketType, ticketDate, email]
+      properties:
+        ticketType:
+          type: string
+          enum: [adult, child, member]
+        ticketDate:
+          type: string
+          format: date
+        email:
+          type: string
+          format: email
+        eventId:
+          type: [string, 'null']
+          description: Set for a special event ticket.
+    Ticket:
+      allOf:
+        - $ref: '#/components/schemas/TicketRequest'
+        - type: object
+          properties:
+            ticketId: { type: string, format: uuid }
+            status: { const: paid }
+            confirmationCode: { type: string, examples: ['ticket-7a3c-11'] }
+    Event:
+      type: object
+      properties:
+        eventId: { type: string }
+        name: { type: string }
+        location: { type: [string, 'null'] }
+        price: { type: number, exclusiveMinimum: 0 }
+  responses:
+    BadRequest:
+      description: The request is not valid.
+      content:
+        application/problem+json:
+          schema:
+            type: object
+            properties:
+              title: { type: string }
+              detail: { type: string }

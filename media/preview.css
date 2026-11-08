@@ -1,0 +1,196 @@
+/* OpenAPI Viewer page. Colors come from VS Code theme variables, so dark, light and high contrast all work. */
+:root {
+  --fg: var(--vscode-foreground);
+  --bg: var(--vscode-editor-background);
+  --muted: var(--vscode-descriptionForeground);
+  --border: var(--vscode-panel-border, rgba(128, 128, 128, .35));
+  --hover: var(--vscode-list-hoverBackground);
+  --sel: var(--vscode-list-activeSelectionBackground);
+  --selfg: var(--vscode-list-activeSelectionForeground);
+  --code-bg: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, .12));
+  --link: var(--vscode-textLink-foreground);
+  --input-bg: var(--vscode-input-background);
+  --input-fg: var(--vscode-input-foreground);
+  --input-border: var(--vscode-input-border, var(--border));
+  --btn-bg: var(--vscode-button-secondaryBackground, rgba(128, 128, 128, .2));
+  --btn-fg: var(--vscode-button-secondaryForeground, var(--fg));
+  --err: var(--vscode-editorError-foreground, #f14c4c);
+  --warn: var(--vscode-editorWarning-foreground, #cca700);
+  --info: var(--vscode-editorInfo-foreground, #3794ff);
+  --get: #3b82f6; --post: #22a06b; --put: #d97706; --patch: #0d9488; --delete: #e5484d; --head: #8b5cf6; --options: #64748b; --trace: #64748b;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; padding: 0; }
+body { color: var(--fg); background: var(--bg); font-family: var(--vscode-font-family); font-size: var(--vscode-font-size, 13px); }
+#app { display: flex; flex-direction: column; height: 100vh; }
+.hidden { display: none !important; }
+button { font: inherit; color: var(--btn-fg); background: var(--btn-bg); border: 1px solid transparent; border-radius: 3px; padding: 3px 9px; cursor: pointer; }
+button:hover { filter: brightness(1.15); }
+button:focus-visible, input:focus-visible, a:focus-visible, li:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: 1px; }
+a { color: var(--link); }
+
+#toolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.badge { font-weight: 600; padding: 2px 8px; border-radius: 10px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); white-space: nowrap; }
+.badge.v31, .badge.v32 { background: #7c3aed; color: #fff; }
+.badge.v30 { background: #2563eb; color: #fff; }
+.badge.v20 { background: #15803d; color: #fff; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+.seg button { border-radius: 0; background: transparent; color: var(--fg); border: 0; }
+.seg button[aria-checked="true"] { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+#filter { flex: 1 1 160px; min-width: 110px; max-width: 320px; color: var(--input-fg); background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 3px; padding: 4px 8px; font: inherit; }
+button.ghost { background: transparent; border-color: var(--border); color: var(--fg); }
+#problemsBtn.has-errors { color: var(--err); border-color: var(--err); }
+#status { margin-left: auto; color: var(--muted); white-space: nowrap; font-size: 12px; }
+#banner { flex: 0 0 auto; padding: 6px 12px; background: var(--vscode-inputValidation-warningBackground, rgba(204, 167, 0, .15)); border-bottom: 1px solid var(--vscode-inputValidation-warningBorder, var(--warn)); }
+#main { flex: 1 1 auto; display: flex; min-height: 0; }
+#content { flex: 1 1 auto; overflow: auto; min-width: 0; position: relative; }
+#empty { padding: 32px; color: var(--muted); }
+#empty h3 { color: var(--fg); }
+#swagger, #reference, #swagger *, #reference * { user-select: text; -webkit-user-select: text; }
+
+/* problems */
+#problems { flex: 0 0 340px; max-width: 45%; border-left: 1px solid var(--border); overflow: auto; background: var(--vscode-sideBar-background, var(--bg)); }
+.phead { position: sticky; top: 0; background: inherit; padding: 8px 10px; border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 6px; justify-content: space-between; font-weight: 600; }
+.pfilters { font-weight: normal; color: var(--muted); display: flex; gap: 8px; }
+#problemList { list-style: none; margin: 0; padding: 0; }
+.pi { display: grid; grid-template-columns: 18px 1fr; gap: 2px 6px; padding: 6px 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.pi:hover { background: var(--hover); }
+.pi.none { display: block; color: var(--muted); cursor: default; }
+.sev { font-weight: 700; text-align: center; }
+.pi.error .sev { color: var(--err); } .pi.warning .sev { color: var(--warn); } .pi.info .sev { color: var(--info); }
+.pmsg { word-break: break-word; }
+.ploc { grid-column: 2; color: var(--muted); font-size: 11px; font-family: var(--vscode-editor-font-family); }
+
+/* reference layout */
+#reference { height: 100%; }
+.rgrid { display: grid; grid-template-columns: minmax(200px, 270px) minmax(0, 1fr) minmax(260px, 38%); height: 100%; }
+.rnav { overflow: auto; border-right: 1px solid var(--border); padding: 6px 0 20px; background: var(--vscode-sideBar-background, var(--bg)); }
+.rdoc { overflow: auto; padding: 18px 26px 40px; min-width: 0; }
+.rside { overflow: auto; padding: 14px; background: var(--vscode-editorWidget-background, var(--code-bg)); border-left: 1px solid var(--border); min-width: 0; }
+@media (max-width: 900px) { .rgrid { grid-template-columns: minmax(170px, 220px) minmax(0, 1fr); grid-template-rows: 1fr auto; } .rside { grid-column: 2; max-height: 40vh; border-left: 0; border-top: 1px solid var(--border); } .rnav { grid-row: 1 / span 2; } }
+.nhead { padding: 10px 12px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.nitem { display: flex; gap: 6px; align-items: baseline; padding: 3px 12px; color: var(--fg); text-decoration: none; line-height: 1.35; }
+.nitem:hover { background: var(--hover); }
+.nitem.sel { background: var(--sel); color: var(--selfg); }
+.nitem.over { font-weight: 600; }
+.nitem.dep .p { text-decoration: line-through; opacity: .7; }
+.nitem .p { font-family: var(--vscode-editor-font-family); font-size: 12px; word-break: break-all; }
+.nitem.sch { font-family: var(--vscode-editor-font-family); font-size: 12px; }
+.m { display: inline-block; min-width: 38px; font-size: 10px; font-weight: 700; text-align: center; border-radius: 3px; padding: 1px 3px; color: #fff; background: var(--options); flex: 0 0 auto; }
+.m-get { background: var(--get); } .m-post { background: var(--post); } .m-put { background: var(--put); } .m-patch { background: var(--patch); } .m-delete { background: var(--delete); } .m-head { background: var(--head); } .m-schema { background: #6b7280; }
+.m.big { font-size: 12px; padding: 3px 8px; min-width: 56px; }
+.ophead { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.route { font-family: var(--vscode-editor-font-family); font-size: 15px; word-break: break-all; }
+.rdoc h1 { margin: 0 0 6px; font-size: 22px; }
+.rdoc h2 { margin: 12px 0 4px; font-size: 18px; }
+.rdoc h3 { margin: 22px 0 8px; font-size: 14px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+.rdoc h4 { margin: 12px 0 4px; }
+.pill { font-size: 11px; padding: 1px 8px; border-radius: 9px; border: 1px solid var(--border); color: var(--muted); }
+.lead { font-size: 14px; }
+.muted { color: var(--muted); }
+.md p { margin: 6px 0; line-height: 1.5; }
+.md code, .rdoc code { font-family: var(--vscode-editor-font-family); background: var(--code-bg); padding: 0 3px; border-radius: 3px; }
+.md pre { background: var(--code-bg); padding: 8px; border-radius: 4px; overflow: auto; }
+.md pre code { background: none; padding: 0; }
+.mdtable, .ptable { border-collapse: collapse; margin: 6px 0; width: 100%; }
+.mdtable th, .mdtable td, .ptable th, .ptable td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; vertical-align: top; }
+.ptable th { background: var(--code-bg); font-weight: 600; }
+.ptable tr.dep td:first-child code { text-decoration: line-through; }
+.img-ph { color: var(--muted); font-style: italic; }
+.req { margin-left: 6px; font-size: 10px; font-weight: 700; color: var(--err); text-transform: uppercase; }
+.flag { font-size: 10px; padding: 0 5px; border-radius: 3px; border: 1px solid var(--border); color: var(--muted); }
+.flag.bad { color: var(--err); border-color: var(--err); }
+.facts { color: var(--muted); font-size: 12px; margin: 2px 0; }
+.facts2 { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; }
+.facts2 dt { color: var(--muted); }
+.facts2 dd { margin: 0; }
+.ctype { margin: 10px 0 4px; font-family: var(--vscode-editor-font-family); font-size: 12px; color: var(--muted); }
+.resp { margin: 8px 0 12px; padding-left: 10px; border-left: 3px solid var(--border); }
+.rhead { display: flex; gap: 10px; align-items: baseline; }
+.rhead .rdesc .md p { margin: 0; }
+.code { font-family: var(--vscode-editor-font-family); font-weight: 700; }
+.code.ok { color: var(--post); } .code.redir { color: var(--info); } .code.bad { color: var(--delete); } .code.other { color: var(--muted); }
+.schema { font-size: 13px; }
+.srow { padding: 2px 0 2px 14px; border-left: 1px dotted var(--border); }
+.schema > .srow { border-left: 0; padding-left: 0; }
+.shead { display: flex; gap: 6px; align-items: baseline; cursor: pointer; flex-wrap: wrap; }
+.shead .tog { width: 14px; height: 14px; padding: 0; border: 0; background: none; color: var(--muted); line-height: 14px; }
+.shead .tog::before { content: '▸'; }
+.shead .tog.open::before { content: '▾'; }
+.shead .tog.leaf::before { content: '·'; }
+.sname { font-family: var(--vscode-editor-font-family); font-weight: 600; }
+.stype { color: var(--muted); font-family: var(--vscode-editor-font-family); font-size: 12px; }
+.stype.reflink { color: var(--link); cursor: pointer; text-decoration: underline dotted; }
+.srow > .md, .srow > .facts { margin-left: 20px; }
+.uses { text-decoration: none; color: var(--fg); font-family: var(--vscode-editor-font-family); font-size: 12px; }
+.cblock { margin-bottom: 14px; }
+.ctitle { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--muted); }
+.ctitle .copy { font-size: 11px; padding: 1px 8px; }
+pre.code { margin: 0; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; overflow: auto; max-height: 60vh; font-family: var(--vscode-editor-font-family); font-size: 12px; font-weight: normal; line-height: 1.45; white-space: pre; }
+
+/* Swagger UI: fit into VS Code */
+#swagger { padding: 0 6px 30px; }
+.swagger-ui { font-family: var(--vscode-font-family); color: var(--fg); }
+.swagger-ui .wrapper { max-width: none; padding: 0 14px; }
+.swagger-ui .filter-container { display: none; }
+.swagger-ui .information-container.wrapper { padding-top: 8px; }
+.swagger-ui .info { margin: 18px 0; }
+.swagger-ui .scheme-container { box-shadow: none; padding: 12px 0; background: transparent; border-bottom: 1px solid var(--border); }
+
+body.vscode-dark .swagger-ui, body.vscode-high-contrast:not(.vscode-high-contrast-light) .swagger-ui { color-scheme: dark; }
+body.vscode-dark .swagger-ui .info .title, body.vscode-dark .swagger-ui .info li, body.vscode-dark .swagger-ui .info p, body.vscode-dark .swagger-ui .info table, body.vscode-dark .swagger-ui .info a,
+body.vscode-dark .swagger-ui .opblock-tag, body.vscode-dark .swagger-ui .opblock .opblock-summary-path, body.vscode-dark .swagger-ui .opblock .opblock-summary-description, body.vscode-dark .swagger-ui .opblock .opblock-summary-operation-id,
+body.vscode-dark .swagger-ui .opblock-description-wrapper p, body.vscode-dark .swagger-ui .opblock-external-docs-wrapper p, body.vscode-dark .swagger-ui .opblock-title_normal p, body.vscode-dark .swagger-ui .opblock .opblock-section-header h4,
+body.vscode-dark .swagger-ui .parameter__name, body.vscode-dark .swagger-ui .parameter__type, body.vscode-dark .swagger-ui .parameter__in, body.vscode-dark .swagger-ui .parameter__deprecated, body.vscode-dark .swagger-ui .parameter__extension,
+body.vscode-dark .swagger-ui table thead tr td, body.vscode-dark .swagger-ui table thead tr th, body.vscode-dark .swagger-ui .response-col_status, body.vscode-dark .swagger-ui .response-col_links, body.vscode-dark .swagger-ui .responses-inner h4, body.vscode-dark .swagger-ui .responses-inner h5,
+body.vscode-dark .swagger-ui .tab li, body.vscode-dark .swagger-ui .model-title, body.vscode-dark .swagger-ui .model, body.vscode-dark .swagger-ui section.models h4, body.vscode-dark .swagger-ui section.models .model-container .model-box,
+body.vscode-dark .swagger-ui .prop-type, body.vscode-dark .swagger-ui .prop-format, body.vscode-dark .swagger-ui .renderedMarkdown p, body.vscode-dark .swagger-ui .markdown p, body.vscode-dark .swagger-ui .markdown li, body.vscode-dark .swagger-ui label,
+body.vscode-dark .swagger-ui .btn, body.vscode-dark .swagger-ui .scheme-container .schemes > label, body.vscode-dark .swagger-ui .servers-title, body.vscode-dark .swagger-ui .servers > label, body.vscode-dark .swagger-ui .opblock-tag small,
+body.vscode-dark .swagger-ui .info .base-url, body.vscode-dark .swagger-ui .model-toggle::after, body.vscode-dark .swagger-ui .response-control-media-type__title, body.vscode-dark .swagger-ui .parameters-col_description,
+body.vscode-dark .swagger-ui .json-schema-2020-12__title, body.vscode-dark .swagger-ui .json-schema-2020-12-keyword__name, body.vscode-dark .swagger-ui .json-schema-2020-12-keyword__value, body.vscode-dark .swagger-ui .json-schema-2020-12-property, body.vscode-dark .swagger-ui .json-schema-2020-12 { color: var(--fg); }
+body.vscode-dark .swagger-ui .info .title small { background: #7d8492; }
+body.vscode-dark .swagger-ui .info .title small.version-stamp { background: #2f7a3a; }
+body.vscode-dark .swagger-ui .opblock-tag { border-bottom-color: var(--border); }
+body.vscode-dark .swagger-ui .opblock .opblock-section-header { background: rgba(255, 255, 255, .04); box-shadow: none; }
+body.vscode-dark .swagger-ui .opblock .opblock-summary { border-color: rgba(255, 255, 255, .12); }
+body.vscode-dark .swagger-ui .opblock.opblock-get { background: rgba(59, 130, 246, .10); border-color: #3b82f6; }
+body.vscode-dark .swagger-ui .opblock.opblock-post { background: rgba(34, 160, 107, .10); border-color: #22a06b; }
+body.vscode-dark .swagger-ui .opblock.opblock-put { background: rgba(217, 119, 6, .10); border-color: #d97706; }
+body.vscode-dark .swagger-ui .opblock.opblock-delete { background: rgba(229, 72, 77, .10); border-color: #e5484d; }
+body.vscode-dark .swagger-ui .opblock.opblock-patch { background: rgba(13, 148, 136, .10); border-color: #0d9488; }
+body.vscode-dark .swagger-ui .opblock.opblock-head, body.vscode-dark .swagger-ui .opblock.opblock-options { background: rgba(139, 92, 246, .10); }
+body.vscode-dark .swagger-ui .opblock.opblock-deprecated { background: rgba(255, 255, 255, .03); opacity: .75; }
+body.vscode-dark .swagger-ui section.models { border-color: var(--border); }
+body.vscode-dark .swagger-ui section.models .model-container { background: rgba(255, 255, 255, .04); }
+body.vscode-dark .swagger-ui section.models .model-container:hover { background: rgba(255, 255, 255, .07); }
+body.vscode-dark .swagger-ui .model-box { background: rgba(255, 255, 255, .04); }
+body.vscode-dark .swagger-ui .prop-type { color: #9cdcfe; }
+body.vscode-dark .swagger-ui .model .property.primitive { color: var(--muted); }
+body.vscode-dark .swagger-ui table tbody tr td { border-color: var(--border); }
+body.vscode-dark .swagger-ui .parameter__name.required::after { color: #ff7b72; }
+body.vscode-dark .swagger-ui input[type=text], body.vscode-dark .swagger-ui input[type=password], body.vscode-dark .swagger-ui input[type=search], body.vscode-dark .swagger-ui input[type=email], body.vscode-dark .swagger-ui textarea, body.vscode-dark .swagger-ui select {
+  background: var(--input-bg); color: var(--input-fg); border-color: var(--input-border); }
+body.vscode-dark .swagger-ui .opblock-body pre.microlight, body.vscode-dark .swagger-ui .highlight-code > .microlight, body.vscode-dark .swagger-ui .model-example pre { background: #1b1f27 !important; color: #d4d4d4; }
+body.vscode-dark .swagger-ui .tab li button.tablinks { color: var(--fg); }
+body.vscode-dark .swagger-ui svg:not(:root) { fill: var(--fg); }
+body.vscode-dark .swagger-ui .opblock-summary-control svg, body.vscode-dark .swagger-ui .expand-operation svg { fill: var(--fg); }
+body.vscode-dark .swagger-ui .opblock .opblock-summary-method { color: #fff; }
+body.vscode-dark .swagger-ui .btn { border-color: var(--border); background: transparent; }
+body.vscode-dark .swagger-ui .dialog-ux .modal-ux { background: var(--bg); color: var(--fg); border-color: var(--border); }
+body.vscode-dark .swagger-ui .dialog-ux .modal-ux-header h3, body.vscode-dark .swagger-ui .dialog-ux .modal-ux-content p, body.vscode-dark .swagger-ui .dialog-ux .modal-ux-content h4 { color: var(--fg); }
+body.vscode-dark .swagger-ui .loading-container .loading::after { color: var(--fg); }
+body.vscode-dark .swagger-ui .errors-wrapper { background: rgba(229, 72, 77, .12); color: var(--fg); }
+body.vscode-dark .swagger-ui .errors-wrapper .errors h4, body.vscode-dark .swagger-ui .errors-wrapper .errors small, body.vscode-dark .swagger-ui .errors-wrapper hgroup h4 { color: var(--fg); }
+body.vscode-dark .swagger-ui .response-col_description__inner p, body.vscode-dark .swagger-ui .response-col_description__inner div.markdown { color: var(--fg); }
+body.vscode-dark .swagger-ui .renderedMarkdown code, body.vscode-dark .swagger-ui .markdown code { background: rgba(255, 255, 255, .08); color: #e6c07b; }
+body.vscode-dark .swagger-ui .info code { color: #e6c07b; }
+body.vscode-dark .swagger-ui .copy-to-clipboard { background: #3a3f4b; }
+body.vscode-light .swagger-ui .opblock .opblock-summary-path { color: #1f2328; }
+/* Swagger UI shows the spec URL under the title; here it is only the internal base for $ref resolution. */
+.swagger-ui .info hgroup.main > a { display: none; }
+pre.code code { background: none; padding: 0; border-radius: 0; color: inherit; }
+body.vscode-dark .swagger-ui .markdown h1, body.vscode-dark .swagger-ui .markdown h2, body.vscode-dark .swagger-ui .markdown h3, body.vscode-dark .swagger-ui .markdown h4,
+body.vscode-dark .swagger-ui .renderedMarkdown h1, body.vscode-dark .swagger-ui .renderedMarkdown h2, body.vscode-dark .swagger-ui .renderedMarkdown h3, body.vscode-dark .swagger-ui .renderedMarkdown h4,
+body.vscode-dark .swagger-ui .info .description h1, body.vscode-dark .swagger-ui .info .description h2, body.vscode-dark .swagger-ui .info .description h3,
+body.vscode-dark .swagger-ui .examples-select__section-label, body.vscode-dark .swagger-ui .opblock-section-header label, body.vscode-dark .swagger-ui .tab-header .tab-item,
+body.vscode-dark .swagger-ui .response-control-examples__title, body.vscode-dark .swagger-ui .model-hint, body.vscode-dark .swagger-ui .opblock-summary-path__deprecated { color: var(--fg); }

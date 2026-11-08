@@ -1,0 +1,274 @@
+{
+  "name": "swagger-openapi-viewer",
+  "displayName": "Swagger Viewer & OpenAPI Viewer (OpenAPI Preview, 3.1, $ref)",
+  "description": "Swagger viewer and OpenAPI preview for VS Code. Live Swagger UI or reference layout for OpenAPI 3.1, 3.0 and Swagger 2.0 in YAML or JSON, with external $ref across files, a problem list with line numbers and copyable text. No server, no port, no sign-in, works offline.",
+  "version": "0.1.0",
+  "publisher": "zovo",
+  "license": "MIT",
+  "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#16233A",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "swaggerUiVersion": "5.34.1",
+  "categories": [
+    "Visualization",
+    "Programming Languages",
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "swagger",
+    "openapi",
+    "swagger viewer",
+    "openapi viewer",
+    "openapi preview",
+    "swagger preview",
+    "swagger ui",
+    "openapi 3.1",
+    "api docs",
+    "yaml",
+    "json",
+    "$ref",
+    "offline",
+    "no sign-in",
+    "redoc",
+    "api reference"
+  ],
+  "main": "./src/extension.js",
+  "activationEvents": [
+    "onLanguage:yaml",
+    "onLanguage:json",
+    "onWebviewPanel:openapiViewer.preview"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Try it out and remote $refs stay off in Restricted Mode.",
+      "restrictedConfigurations": [
+        "openapiViewer.tryItOut"
+      ]
+    },
+    "virtualWorkspaces": true
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "openapiViewer.showPreviewToSide",
+        "title": "Open Preview to the Side",
+        "category": "OpenAPI Viewer",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "openapiViewer.showPreview",
+        "title": "Open Preview",
+        "category": "OpenAPI Viewer"
+      },
+      {
+        "command": "openapiViewer.openWalkthrough",
+        "title": "Get Started",
+        "category": "OpenAPI Viewer"
+      },
+      {
+        "command": "openapiViewer.supportDeveloper",
+        "title": "Support the developer",
+        "category": "OpenAPI Viewer"
+      },
+      {
+        "command": "openapiViewer.moreViewers",
+        "title": "More free viewers",
+        "category": "OpenAPI Viewer"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "openapiViewer.showPreviewToSide",
+        "key": "shift+alt+p",
+        "when": "editorTextFocus && openapiViewer.isSpec"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "openapiViewer.showPreviewToSide",
+          "when": "openapiViewer.isSpec && activeWebviewPanelId != 'openapiViewer.preview'",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "openapiViewer.showPreviewToSide",
+          "when": "resourceExtname =~ /^\\.(ya?ml|json)$/i",
+          "group": "navigation@9"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "openapiViewer.showPreviewToSide",
+          "when": "openapiViewer.isSpec",
+          "group": "navigation@9"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "openapiViewer.showPreviewToSide",
+          "when": "openapiViewer.isSpec || resourceExtname =~ /^\\.(ya?ml|json)$/i"
+        },
+        {
+          "command": "openapiViewer.showPreview",
+          "when": "openapiViewer.isSpec || resourceExtname =~ /^\\.(ya?ml|json)$/i"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "OpenAPI Viewer",
+      "properties": {
+        "openapiViewer.defaultLayout": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "swagger",
+            "reference"
+          ],
+          "enumDescriptions": [
+            "Swagger UI, or the reference layout for large specs (see openapiViewer.largeSpecMB)",
+            "Swagger UI",
+            "Reference layout: list, details and examples side by side"
+          ],
+          "default": "auto",
+          "description": "Layout of a new preview. The toolbar switch changes it and is kept for this workspace."
+        },
+        "openapiViewer.updateDelayMs": {
+          "type": "number",
+          "default": 400,
+          "minimum": 0,
+          "maximum": 5000,
+          "description": "Wait this long after you stop typing before the preview updates. Files over 1 MB wait at least 800 ms, files over 4 MB at least 1.5 s."
+        },
+        "openapiViewer.maxFileMB": {
+          "type": "number",
+          "default": 64,
+          "minimum": 1,
+          "maximum": 1024,
+          "description": "Largest spec file (root or referenced) that is read, in MB."
+        },
+        "openapiViewer.largeSpecMB": {
+          "type": "number",
+          "default": 3,
+          "minimum": 0.1,
+          "maximum": 1024,
+          "description": "With the auto layout, specs larger than this (or with more than 600 operations) open in the reference layout, which draws one operation at a time."
+        },
+        "openapiViewer.remoteRefs": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "never"
+          ],
+          "enumDescriptions": [
+            "Show a \"Load remote refs\" button when a spec has http(s) $refs. Nothing is loaded until you click it, and only for that file.",
+            "Never load http(s) $refs."
+          ],
+          "default": "ask",
+          "description": "Remote $refs (http and https). Local and private network addresses are never loaded."
+        },
+        "openapiViewer.tryItOut": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show \"Try it out\" in the Swagger UI layout. Requests are sent by VS Code after you confirm each server. Off by default: the preview makes no network requests."
+        },
+        "openapiViewer.swaggerUi.docExpansion": {
+          "type": "string",
+          "enum": [
+            "list",
+            "full",
+            "none"
+          ],
+          "enumDescriptions": [
+            "Tags open, operations closed",
+            "Tags and operations open",
+            "Everything closed"
+          ],
+          "default": "list",
+          "description": "What Swagger UI opens at first. Large specs always start closed."
+        },
+        "openapiViewer.showProblemsInEditor": {
+          "type": "boolean",
+          "default": true,
+          "description": "Also show the problems of an open preview in the Problems panel and as squiggles in the spec files."
+        },
+        "openapiViewer.askForRating": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ask one time for a Marketplace rating after you have used OpenAPI Viewer on a few files on different days. You can answer \"Later\" or \"No thanks\". Nothing is sent anywhere."
+        },
+        "openapiViewer.showSupportLinks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the small Sponsor and More free viewers links at the bottom of the preview. Nothing is sent anywhere."
+        }
+      }
+    },
+    "walkthroughs": [
+      {
+        "id": "openapiViewer.start",
+        "title": "Get started with OpenAPI Viewer",
+        "description": "Preview OpenAPI and Swagger files in VS Code, offline.",
+        "steps": [
+          {
+            "id": "open",
+            "title": "Open a preview",
+            "description": "Open a YAML or JSON file that starts with openapi: or swagger:. Click the preview button at the top right of the editor, or press Shift+Alt+P.\n[Find a spec](command:workbench.action.quickOpen?%5B%22.yaml%22%5D)",
+            "media": {
+              "image": "images/readme-swagger-dark.png",
+              "altText": "An OpenAPI 3.1 file next to its live Swagger UI preview in VS Code."
+            },
+            "completionEvents": [
+              "onCommand:openapiViewer.showPreviewToSide"
+            ]
+          },
+          {
+            "id": "refs",
+            "title": "Split specs and problems",
+            "description": "Relative $refs to other files are loaded from your workspace and kept up to date when you save them. The Problems list shows errors with file and line; click one to go there.",
+            "media": {
+              "markdown": "walkthrough/refs.md"
+            }
+          },
+          {
+            "id": "layout",
+            "title": "Two layouts",
+            "description": "Switch between Swagger UI and the reference layout in the toolbar. Large specs open in the reference layout.\n[Open settings](command:workbench.action.openSettings?%5B%22openapiViewer%22%5D)",
+            "media": {
+              "markdown": "walkthrough/layout.md"
+            },
+            "completionEvents": [
+              "onCommand:workbench.action.openSettings"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "package": "npx -y @vscode/vsce package --no-dependencies -o dist/"
+  },
+  "devDependencies": {
+    "@types/vscode": "~1.90.0"
+  },
+  "homepage": "https://github.com/theluckystrike/swagger-openapi-viewer-vscode#readme",
+  "bugs": {
+    "url": "https://github.com/theluckystrike/swagger-openapi-viewer-vscode/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/theluckystrike/swagger-openapi-viewer-vscode"
+  },
+  "sponsor": {
+    "url": "https://github.com/sponsors/theluckystrike"
+  }
+}
