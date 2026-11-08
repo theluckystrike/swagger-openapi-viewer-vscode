@@ -67,8 +67,19 @@ function privateAddress(ip) {
   }
   const v = ip.toLowerCase();
   if (v === '::' || v === '::1') return true;
-  if (v.startsWith('::ffff:')) return privateAddress(v.slice(7));
+  const v4 = embeddedV4(v);
+  if (v4) return privateAddress(v4);
   return /^(fc|fd|fe8|fe9|fea|feb|ff)/.test(v);
+}
+
+/** The IPv4 address inside an IPv4-mapped (::ffff:), NAT64 (64:ff9b::) or IPv4-compatible (::) IPv6 address, in either
+ *  form: URL parsing turns [::ffff:127.0.0.1] into ::ffff:7f00:1, which must still count as 127.0.0.1. */
+function embeddedV4(v) {
+  const m = /^(?:::ffff:(?:0:)?|64:ff9b::|::)(?:(\d{1,3}(?:\.\d{1,3}){3})|([0-9a-f]{1,4}):([0-9a-f]{1,4}))$/.exec(v);
+  if (!m) return null;
+  if (m[1]) return m[1];
+  const a = parseInt(m[2], 16), b = parseInt(m[3], 16);
+  return [a >> 8, a & 255, b >> 8, b & 255].join('.');
 }
 
 async function fetchRemoteRef(url) {
@@ -163,6 +174,9 @@ class Preview {
     });
   }
 
+  /** A file that could not be shown records a failure for the rating rule (once per preview): no ask after it. */
+  failed() { this.counted = true; if (!this.failRecorded) { this.failRecorded = true; rating.failure(); } }
+
   /** The layout picked in the toolbar is kept per file; other files start with the openapiViewer.defaultLayout setting. */
   prefs() { const p = this.manager.context.workspaceState.get(PREFS_KEY) || {}; const l = p.layouts && p.layouts[this.key]; return { layout: ['swagger', 'reference'].includes(l) ? l : '' }; }
   post(m) { if (!this.disposed) return this.panel.webview.postMessage(m).then(undefined, () => false); return Promise.resolve(false); }
@@ -170,7 +184,7 @@ class Preview {
 
   schedule(delay) {
     clearTimeout(this.timer);
-    this.timer = setTimeout(() => this.update().catch(err => this.post({ type: 'fatal', message: String(err && err.message || err) })), delay);
+    this.timer = setTimeout(() => this.update().catch(err => { this.failed(); this.post({ type: 'fatal', message: String(err && err.message || err) }); }), delay);
   }
 
   /** Debounce grows with the file size, so typing in a 10 MB spec does not start a build on every key. */
@@ -200,10 +214,10 @@ class Preview {
       let text;
       try { text = await this.rootText(); }
       catch (e) {
-        if (e && e.size) { this.post({ type: 'notice', heading: 'File too large', message: `${this.fileName} is ${fmtMB(e.size)}. OpenAPI Viewer opens files up to ${s.maxFileMB} MB (setting openapiViewer.maxFileMB), so it was not read.` }); return; }
+        if (e && e.size) { this.failed(); this.post({ type: 'notice', heading: 'File too large', message: `${this.fileName} is ${fmtMB(e.size)}. OpenAPI Viewer opens files up to ${s.maxFileMB} MB (setting openapiViewer.maxFileMB), so it was not read.` }); return; }
         throw e;
       }
-      if (text.length > s.maxFileMB * MB) { this.post({ type: 'notice', heading: 'File too large', message: `${this.fileName} is ${fmtMB(text.length)}. OpenAPI Viewer opens files up to ${s.maxFileMB} MB (setting openapiViewer.maxFileMB).` }); return; }
+      if (text.length > s.maxFileMB * MB) { this.failed(); this.post({ type: 'notice', heading: 'File too large', message: `${this.fileName} is ${fmtMB(text.length)}. OpenAPI Viewer opens files up to ${s.maxFileMB} MB (setting openapiViewer.maxFileMB).` }); return; }
       this.lastBytes = text.length;
       this.post({ type: 'busy', bytes: text.length });
       const root = allowedRoot(this.uri);
@@ -240,6 +254,7 @@ class Preview {
         break;
       case 'rendered':
         if (!this.counted && m.ok) { this.counted = true; rating.success(); }
+        else if (!m.ok) this.failed();
         this.lastRender = { ms: Number(m.ms) || 0, layout: String(m.layout || '') };
         break;
       case 'layout':
