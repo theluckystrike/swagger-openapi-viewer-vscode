@@ -68,3 +68,14 @@ test('node budget stops a spec that grows too large', async () => {
   for (let i = 0; i < 2000; i++) big.paths['/p' + i] = { get: { responses: { 200: { description: 'ok' } } } };
   await assert.rejects(bundle({ rootUri: 'file:///w/r.yaml', data: big, family: '3.0', read: async () => ({ data: {} }), maxNodes: 1000 }), /more than 1,000 nodes/);
 });
+
+test('a schema nested 4,000 levels deep gives a clear error at once, not a stalled worker (VER11)', async () => {
+  const { runJob } = require('../src/core/job');
+  const n = 4000;
+  const text = '{"openapi":"3.0.0","info":{"title":"d","version":"1"},"paths":{},"components":{"schemas":{"D":' + '{"properties":{"n":'.repeat(n) + '{}' + '}}'.repeat(n) + '}}}';
+  const t0 = Date.now();
+  const r = await runJob({ rootUri: 'file:///w/deep.json', rootText: text, read: async () => { throw new Error('no'); } });
+  assert.equal(r.ok, false);
+  assert.match(r.error.message, /nested more than 300 levels/);
+  assert.ok(Date.now() - t0 < 5000);
+});

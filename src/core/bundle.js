@@ -45,6 +45,8 @@ const baseName = uri => { const p = decodeURIComponent(String(uri).split(/[?#]/)
  *         maxNodes (default 4e6), maxFiles (default 1000) }
  * returns { spec, unresolved: [{ ref, file, path, reason, code }], files: [uri...], origins: [{ out, uri, src }], nodes }
  */
+const MAX_DEPTH = 300;
+
 async function bundle(opts) {
   const rootUri = opts.rootUri;
   const maxNodes = opts.maxNodes || 4e6;
@@ -148,6 +150,9 @@ async function bundle(opts) {
   async function walk(v, fileUri, outPath, srcPath) {
     if (v === null || typeof v !== 'object') return v;
     if (++nodes > maxNodes) throw Object.assign(new Error(`the spec has more than ${maxNodes.toLocaleString('en-US')} nodes after $ref resolution`), { code: 'limit' });
+    // VER11: a 1,000-deep schema overflowed the stack inside the promise machinery, the rejection was lost and the preview
+    // waited for the 120 s timeout. Real specs are far below this depth.
+    if (outPath.length > MAX_DEPTH) throw Object.assign(new Error(`the spec is nested more than ${MAX_DEPTH} levels deep, so it is not shown`), { code: 'limit' });
     if (!Array.isArray(v) && typeof v.$ref === 'string') return resolveObj(v, fileUri, outPath, srcPath);
     if (Array.isArray(v)) {
       for (let i = 0; i < v.length; i++) {
