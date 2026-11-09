@@ -256,7 +256,7 @@ class Preview {
       const big = r.stats.bytes > s.largeSpecMB * MB || r.stats.operations > 600;
       const issues = r.issues.slice(0, 1000).map(i => ({ ...i, file: relName(vscode.Uri.parse(i.uri), this.uri), uri: i.uri }));
       this.lastOk = true;
-      await this.post({ type: 'spec', spec: r.spec, version: r.version, issues, issueTotal: r.issues.length, unresolved: r.unresolved.length, remoteBlocked, remoteAllowed: this.allowRemote, remoteRefs: s.remoteRefs, stats: r.stats, ms: r.ms, big, files: r.files.length, fileName: this.fileName });
+      await this.post({ type: 'spec', spec: r.spec, version: r.version, issues, issueTotal: r.issues.length, unresolved: r.unresolved.length, remoteBlocked, remoteAllowed: this.allowRemote, remoteRefs: vscode.workspace.isTrusted ? s.remoteRefs : 'never', stats: r.stats, ms: r.ms, big, files: r.files.length, fileName: this.fileName });
     } finally {
       this.busy = false;
       if (this.again) { this.again = false; this.schedule(this.delayFor()); }
@@ -293,6 +293,7 @@ class Preview {
       case 'follow': await vscode.workspace.getConfiguration(SECTION).update('preview.followCursor', !!m.on, vscode.ConfigurationTarget.Global); break;
       case 'snippet': vscode.commands.executeCommand('openapiViewer.copyClientCode', this.uri, { apiPath: String(m.apiPath || ''), method: String(m.method || '').toLowerCase() }); break;
       case 'allowRemote':
+        if (!vscode.workspace.isTrusted) { vscode.window.showInformationMessage('Remote $refs are off in Restricted Mode. Trust this workspace to load them.'); break; }
         if (s.remoteRefs === 'never') { vscode.window.showInformationMessage('Remote $refs are turned off in settings (openapiViewer.remoteRefs).'); break; }
         this.allowRemote = true; this.schedule(0); break;
       case 'refresh': this.schedule(0); break;
@@ -408,6 +409,7 @@ class Manager {
     if (uri.scheme === 'http' || uri.scheme === 'https') {
       const s = settings();
       if (s.remoteRefs === 'never') throw Object.assign(new Error('remote refs are turned off (openapiViewer.remoteRefs)'), { code: 'refused' });
+      if (!vscode.workspace.isTrusted) throw Object.assign(new Error('remote refs are off in Restricted Mode'), { code: 'refused' });
       if (!preview || !preview.allowRemote) throw Object.assign(new Error('remote refs are not loaded until you click "Load remote refs"'), { code: 'remote-blocked' });
       return fetchRemoteRef(uriStr);
     }

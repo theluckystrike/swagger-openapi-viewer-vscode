@@ -80,3 +80,17 @@ test('README: no "#123" text, because vsce links it to this repo\'s issue 123 (V
   assert.equal((md.match(/(^|[\s(\[])#\d+\b/gm) || []).length, 0);
   assert.ok(!/USD 15/.test(md + JSON.stringify(pkg)), 'Zovo Pro is USD 19 (FIXSPON)');
 });
+
+test('Restricted Mode: what the capabilities text promises is gated on workspace trust (VER15)', () => {
+  const cap = pkg.capabilities.untrustedWorkspaces;
+  assert.match(cap.description, /remote \$refs/);
+  const ext = fs.readFileSync(path.join(root, 'src/extension.js'), 'utf8');
+  const allow = ext.slice(ext.indexOf("case 'allowRemote':"), ext.indexOf("case 'refresh':"));
+  assert.match(allow, /!vscode\.workspace\.isTrusted/, 'the Load remote refs click is not gated');
+  const read = ext.slice(ext.indexOf('async readRef('), ext.indexOf('async readRef(') + 900);
+  assert.match(read, /!vscode\.workspace\.isTrusted/, 'readRef does not refuse http refs in Restricted Mode');
+  assert.match(ext, /remoteRefs: vscode\.workspace\.isTrusted \? s\.remoteRefs : 'never'/, 'the button is not hidden in Restricted Mode');
+  const cmd = fs.readFileSync(path.join(root, 'src/commands.js'), 'utf8');
+  assert.match(cmd, /mock server is off in Restricted Mode/);
+  for (const k of ['openapiViewer.tryItOut', 'openapiViewer.tryItOutAllowedHosts', 'openapiViewer.mock.port']) assert.ok(cap.restrictedConfigurations.includes(k), k);
+});

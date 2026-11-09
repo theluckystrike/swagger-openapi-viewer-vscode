@@ -11,6 +11,7 @@
 - New name: Swagger Editor & OpenAPI Editing (Lint, Spec Preview, 3.1). The extension id is the same.
 - Rating ask v2.1, support links with Rate first, related tools (Load Testing, HAR Viewer).
 - Hover, go to definition and rename do not read a file through a symlink that leads out of the workspace (the preview already refused it).
+- Restricted Mode: the Load remote refs button is hidden and remote $refs are not loaded, as the Restricted Mode note says.
 
 ## 0.1.1
 
