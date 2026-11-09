@@ -15,13 +15,13 @@ test('engines floor and types match OVX1 (^1.90.0, ~1.90.0)', () => {
 
 test('every word of each target phrase is in the display name', () => {
   const name = pkg.displayName.toLowerCase();
-  for (const phrase of ['swagger viewer', 'openapi viewer', 'openapi preview', 'swagger preview', 'swagger', 'openapi 3.1']) {
+  for (const phrase of ['swagger editor', 'openapi editor', 'openapi preview', 'swagger preview', 'swagger', 'openapi 3.1', 'openapi lint']) {
     for (const w of phrase.split(' ')) assert.ok(name.includes(w), `${w} (${phrase})`);
   }
 });
 
 test('commands in package.json are the ones the extension registers', () => {
-  const src = fs.readFileSync(path.join(root, 'src/extension.js'), 'utf8') + fs.readFileSync(path.join(root, 'src/support.js'), 'utf8');
+  const src = ['src/extension.js', 'src/support.js', 'src/commands.js', 'src/license/index.js'].map(f => fs.readFileSync(path.join(root, f), 'utf8')).join('\n');
   for (const c of pkg.contributes.commands) {
     const id = c.command;
     const short = id.split('.')[1];
@@ -53,7 +53,7 @@ test('CSP: nothing remote, scripts only by nonce, no connect, no frames', () => 
   const scripts = html.match(/<script[^>]*>/g);
   assert.equal(scripts.length, 3);
   assert.ok(scripts.every(s => s.includes('nonce="n1"')));
-  assert.ok(!/https?:\/\//.test(html.replace(/https:\/\/(github\.com|marketplace\.visualstudio\.com)[^"' )]*/g, '')));
+  assert.ok(!/https?:\/\//.test(html.replace(/https:\/\/(github\.com|marketplace\.visualstudio\.com|www\.paypal\.com\/paypalme)[^"' )]*/g, '')));
 });
 
 test('webview scripts have no eval and no remote URL', () => {
@@ -68,4 +68,15 @@ test('vsix stays small: media and vendor under 4 MB', () => {
   const walk = d => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else total += fs.statSync(p).size; } };
   walk(path.join(root, 'media')); walk(path.join(root, 'vendor')); walk(path.join(root, 'src'));
   assert.ok(total < 4 * 1048576, String(total));
+});
+
+test('Marketplace tags: no keyword starts with a special character (vsce refused "$ref" for 0.1.0)', () => {
+  for (const k of pkg.keywords) assert.match(k, /^[A-Za-z0-9]/, k);
+  assert.ok(pkg.keywords.length <= 30);
+});
+
+test('README: no "#123" text, because vsce links it to this repo\'s issue 123 (VER15 finding)', () => {
+  const md = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+  assert.equal((md.match(/(^|[\s(\[])#\d+\b/gm) || []).length, 0);
+  assert.ok(!/USD 15/.test(md + JSON.stringify(pkg)), 'Zovo Pro is USD 19 (FIXSPON)');
 });

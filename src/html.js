@@ -53,6 +53,7 @@ ${footer ? `<style nonce="${esc(nonce)}">${FOOTER_CSS}\n.zovo-support{flex:0 0 a
     <button id="problemsBtn" class="ghost" aria-pressed="false" title="Show or hide the problem list">Problems</button>
     <button id="remoteBtn" class="ghost hidden" title="Load $refs from http(s) URLs for this file. Nothing is loaded until you click.">Load remote refs</button>
     <button id="expandBtn" class="ghost" title="Expand or collapse all operations">Expand all</button>
+    <button id="followBtn" class="ghost" aria-pressed="true" title="Show the operation or schema under the cursor of the spec editor. A click on an operation or schema here moves the cursor to its line.">Follow cursor</button>
     <span id="status" aria-live="polite"></span>
   </div>
   <div id="banner" class="hidden" role="alert"></div>

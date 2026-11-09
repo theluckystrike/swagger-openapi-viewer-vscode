@@ -14,6 +14,7 @@
   let tryItOut = false; let docExpansion = 'list';
   let filterText = st.filter || '';
   let expanded = false;
+  let follow = st.follow !== false;
   let probe = { ready: false, renders: 0, lastMs: 0, layout: '', error: null, issues: 0, version: '' };
   window.openapiSpecText = () => (last ? JSON.stringify(last.spec) : '');
   window.openapiProblems = () => (last ? last.issues.map(i => i.severity + ' ' + i.file + ':' + (i.line + 1) + ' ' + i.message) : []);
@@ -155,7 +156,8 @@
   const ctx = {
     openLink: url => post({ type: 'openLink', url: String(url) }),
     copy: text => post({ type: 'copyText', text: String(text) }),
-    onSelect: id => { st.selected = id; saveState(); },
+    onSelect: (id, quiet) => { st.selected = id; saveState(); if (!quiet && follow) jumpTo(id); },
+    snippet: (apiPath, method) => post({ type: 'snippet', apiPath, method }),
   };
   function drawReference(spec) {
     const t0 = performance.now();
@@ -179,6 +181,87 @@
     if (layout === 'swagger') drawSwagger(spec);
     else drawReference(spec);
   }
+
+  // ---- editor sync: cursor -> preview ('follow' from the host), click -> cursor ('jump' to the host) ----
+  function idOf(t) {
+    if (!t) return null;
+    if ((t.kind === 'operation' || t.kind === 'webhook') && !t.method) {
+      // Cursor on the path line itself: the first operation of that path.
+      const item = last && (t.kind === 'operation' ? last.spec.paths : last.spec.webhooks);
+      const pi = item && item[t.kind === 'operation' ? t.apiPath : t.name];
+      const m = pi && ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'].find(k => pi[k]);
+      if (!m) return null;
+      t = Object.assign({}, t, { method: m });
+    }
+    if (t.kind === 'operation') return 'path:' + t.method + ':' + t.apiPath;
+    if (t.kind === 'webhook') return 'webhook:' + t.method + ':' + t.name;
+    if (t.kind === 'schema') return 'schema:' + t.name;
+    if (t.kind === 'info') return 'overview';
+    return null;
+  }
+  function jumpTo(id) {
+    const m = /^(path|webhook):([a-z]+):(.*)$/.exec(id);
+    if (m) post({ type: 'jump', kind: m[1] === 'path' ? 'operation' : 'webhook', method: m[2], apiPath: m[3], name: m[3] });
+    else if (id.startsWith('schema:')) post({ type: 'jump', kind: 'schema', name: id.slice(7) });
+  }
+  function flash(node) {
+    if (!node) return;
+    node.scrollIntoView({ block: 'start', behavior: 'auto' });
+    node.classList.remove('follow-hit'); void node.offsetWidth; node.classList.add('follow-hit');
+    setTimeout(() => node.classList.remove('follow-hit'), 1400);
+  }
+  function opNode(method, apiPath) {
+    for (const n of document.querySelectorAll('#swagger .opblock' + (method ? '.opblock-' + method : '') + ' .opblock-summary-path')) {
+      if (n.getAttribute('data-path') === apiPath) return n.closest('.opblock');
+    }
+    return null;
+  }
+  function followSwagger(t) {
+    if (!ui || !last) return;
+    if (t.kind === 'operation') {
+      let node = opNode(t.method, t.apiPath);
+      if (node) return flash(node);
+      const item = last.spec.paths && last.spec.paths[t.apiPath];
+      const op = item && (t.method ? item[t.method] : ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'].map(k => item[k]).find(Boolean));
+      if (!op) return;
+      const tag = Array.isArray(op.tags) && op.tags.length ? String(op.tags[0]) : 'default';
+      try { ui.layoutActions.show(['operations-tag', tag], true); } catch (e) { /* ignore */ }
+      waitFor(() => opNode(t.method, t.apiPath), 1500).then(flash);
+    } else if (t.kind === 'schema') {
+      const find = () => document.getElementById('model-' + t.name);
+      if (find()) return flash(find());
+      try { ui.layoutActions.show('models', true); } catch (e) { /* ignore */ }
+      waitFor(find, 1500).then(flash);
+    } else if (t.kind === 'info') {
+      flash(document.querySelector('#swagger .information-container'));
+    }
+  }
+  function onFollow(t) {
+    probe.follow = t;
+    if (!follow || !t || !last) return;
+    if (layout === 'reference' && ref) { const id = idOf(t); if (id) ref.show(id); }
+    else if (layout === 'swagger') followSwagger(t);
+  }
+  function setFollow(v, user) {
+    follow = !!v; st.follow = follow; saveState();
+    const b = $('followBtn');
+    if (b) { b.setAttribute('aria-pressed', String(follow)); b.classList.toggle('on', follow); }
+    if (user) post({ type: 'follow', on: follow });
+  }
+  // A click on an operation or a schema in Swagger UI moves the editor cursor to it (capture: runs before React).
+  document.addEventListener('click', e => {
+    if (!follow || !e.target.closest) return;
+    const sum = e.target.closest('#swagger .opblock-summary');
+    if (sum) {
+      const pathEl = sum.querySelector('.opblock-summary-path');
+      const blk = sum.closest('.opblock');
+      const m = blk && /\bopblock-(get|put|post|delete|options|head|patch|trace)\b/.exec(blk.className);
+      if (pathEl && m) post({ type: 'jump', kind: 'operation', method: m[1], apiPath: pathEl.getAttribute('data-path') || pathEl.textContent.trim() });
+      return;
+    }
+    const model = e.target.closest('#swagger .model-container[id^="model-"]');
+    if (model && e.target.closest('.model-box-control, .model-title, .model-toggle')) post({ type: 'jump', kind: 'schema', name: model.id.slice(6) });
+  }, true);
 
   // ---- problems ----
   function drawProblems() {
@@ -224,6 +307,7 @@
       case 'init':
         tryItOut = !!m.tryItOut; docExpansion = m.docExpansion || 'list'; wanted = m.layout || 'auto';
         st.uri = m.uri; vscode.setState(st);
+        if (typeof m.follow === 'boolean' && st.follow == null) setFollow(m.follow, false); else setFollow(follow, false);
         if (st.problems) toggleProblems(true);
         break;
       case 'busy': status(m.bytes > 1048576 ? `Reading ${(m.bytes / 1048576).toFixed(1)} MB…` : 'Updating…'); break;
@@ -263,6 +347,8 @@
       }
       case 'fatal': probe.error = m.message; setBanner(el('span', { text: 'The preview could not be built: ' + m.message })); status(''); break;
       case 'httpResult': onHttp(m); break;
+      case 'follow': onFollow(m.target); break;
+      case 'followSetting': setFollow(!!m.on, false); break;
     }
   });
 
@@ -277,6 +363,7 @@
     ft = setTimeout(() => { filterText = filter.value; saveState(); if (layout === 'swagger') swaggerFilter(filterText); else if (ref) ref.filter(filterText); }, 150);
   });
   $('problemsBtn').addEventListener('click', () => toggleProblems());
+  $('followBtn').addEventListener('click', () => setFollow(!follow, true));
   $('showWarnings').addEventListener('change', drawProblems);
   $('showInfo').addEventListener('change', drawProblems);
   $('remoteBtn').addEventListener('click', () => { post({ type: 'allowRemote' }); $('remoteBtn').classList.add('hidden'); status('Loading remote refs…'); });

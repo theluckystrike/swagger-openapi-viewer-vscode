@@ -12,7 +12,8 @@ const MAX_ISSUES = 2000;
 
 function validate(spec, family, opts = {}) {
   const issues = [];
-  const add = (severity, message, path) => { if (issues.length < MAX_ISSUES) issues.push({ severity, message, path }); };
+  // rule: the lint rule id that covers the same check (job.js drops these when lint runs, so nothing shows twice).
+  const add = (severity, message, path, rule) => { if (issues.length < MAX_ISSUES) issues.push(rule ? { severity, message, path, rule } : { severity, message, path }); };
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) { add('error', 'The document is not an object with openapi or swagger at the top.', []); return issues; }
   const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
 
@@ -67,7 +68,7 @@ function validate(spec, family, opts = {}) {
       if (family !== '2.0' && p.schema === undefined && p.content === undefined) add('warning', `Parameter "${p.name}" has no schema or content.`, pp);
       if (family === '2.0' && p.in !== 'body' && p.type === undefined && p.in !== undefined) add('warning', `Parameter "${p.name}" has no type.`, pp);
       const k = p.in + ':' + p.name;
-      if (seen.has(k)) add('error', `Parameter "${p.name}" in ${p.in} is listed twice.`, pp);
+      if (seen.has(k)) add('error', `Parameter "${p.name}" in ${p.in} is listed twice.`, pp, 'operation-parameters');
       seen.add(k);
       out.push(p);
     });
@@ -97,7 +98,7 @@ function validate(spec, family, opts = {}) {
         if (!isObj(op)) { add('error', `${m.toUpperCase()} ${route} must be an object.`, op_); continue; }
         const own = checkParams(op.parameters, [...op_, 'parameters'], family);
         if (op.operationId !== undefined) {
-          if (opIds.has(op.operationId)) add('error', `operationId "${op.operationId}" is used twice (also ${opIds.get(op.operationId)}).`, [...op_, 'operationId']);
+          if (opIds.has(op.operationId)) add('error', `operationId "${op.operationId}" is used twice (also ${opIds.get(op.operationId)}).`, [...op_, 'operationId'], 'operation-operationId-unique');
           else opIds.set(op.operationId, `${m.toUpperCase()} ${route}`);
         }
         if (op.responses === undefined) { if (family !== '3.1' && family !== '3.2') add('error', `${m.toUpperCase()} ${route} has no responses.`, op_); }
@@ -109,8 +110,8 @@ function validate(spec, family, opts = {}) {
         }
         if (base[0] === 'paths') {
           const pathParams = new Set([...shared, ...own].filter(p => p.in === 'path').map(p => p.name));
-          for (const n of names) if (!pathParams.has(n)) add('error', `${m.toUpperCase()} ${route}: path parameter "{${n}}" is not declared in parameters.`, op_);
-          for (const n of pathParams) if (!names.includes(n)) add('error', `${m.toUpperCase()} ${route}: parameter "${n}" is in: path but not in the path.`, op_);
+          for (const n of names) if (!pathParams.has(n)) add('error', `${m.toUpperCase()} ${route}: path parameter "{${n}}" is not declared in parameters.`, op_, 'path-params');
+          for (const n of pathParams) if (!names.includes(n)) add('error', `${m.toUpperCase()} ${route}: parameter "${n}" is in: path but not in the path.`, op_, 'path-params');
         }
         if (family === '2.0' && [...shared, ...own].filter(p => p.in === 'body').length > 1) add('error', `${m.toUpperCase()} ${route} has more than one body parameter.`, op_);
         if ((m === 'get' || m === 'head') && op.requestBody !== undefined) add('info', `${m.toUpperCase()} ${route} has a requestBody. Many servers and tools ignore a body on ${m.toUpperCase()}.`, [...op_, 'requestBody']);
@@ -134,7 +135,7 @@ function validate(spec, family, opts = {}) {
       for (const x of t) if (!TYPES.includes(x)) add('error', `type "${x}" is not a JSON Schema type.`, [...path, 'type']);
     }
     if (t === 'null' && family !== '3.1' && family !== '3.2') add('warning', 'type: null is OpenAPI 3.1. In 3.0 use nullable: true.', [...path, 'type']);
-    if (s.nullable !== undefined && (family === '3.1' || family === '3.2')) add('warning', 'nullable is not in OpenAPI 3.1. Use type: [<type>, "null"].', [...path, 'nullable']);
+    if (s.nullable !== undefined && (family === '3.1' || family === '3.2')) add('warning', 'nullable is not in OpenAPI 3.1. Use type: [<type>, "null"].', [...path, 'nullable'], 'oas3_1-type-array-null');
     if (s.nullable !== undefined && family === '2.0') add('info', 'nullable is not in Swagger 2.0 (x-nullable is the usual extension).', [...path, 'nullable']);
     if (t === 'array' && s.items === undefined && family !== '3.1' && family !== '3.2') add('error', 'A schema with type: array needs items.', path);
     if (s.required !== undefined && !Array.isArray(s.required) && typeof s.required !== 'boolean') add('error', 'required must be a list of property names.', [...path, 'required']);
@@ -159,7 +160,7 @@ function validate(spec, family, opts = {}) {
     if (p === null || getPath(spec, p) === undefined) {
       if (!missing.has(ref)) missing.set(ref, 0);
       const n = missing.get(ref) + 1; missing.set(ref, n);
-      if (n <= 5) add('error', `$ref "${ref}" points to nothing.`, path);
+      if (n <= 5) add('error', `$ref "${ref}" points to nothing.`, path, 'invalid-ref');
     }
   }
   for (const u of opts.unresolved || []) add(u.code === 'remote-blocked' ? 'warning' : 'error', `$ref "${u.ref}" was not loaded: ${u.reason}.`, null);

@@ -194,3 +194,9 @@ body.vscode-dark .swagger-ui .renderedMarkdown h1, body.vscode-dark .swagger-ui 
 body.vscode-dark .swagger-ui .info .description h1, body.vscode-dark .swagger-ui .info .description h2, body.vscode-dark .swagger-ui .info .description h3,
 body.vscode-dark .swagger-ui .examples-select__section-label, body.vscode-dark .swagger-ui .opblock-section-header label, body.vscode-dark .swagger-ui .tab-header .tab-item,
 body.vscode-dark .swagger-ui .response-control-examples__title, body.vscode-dark .swagger-ui .model-hint, body.vscode-dark .swagger-ui .opblock-summary-path__deprecated { color: var(--fg); }
+
+/* editor sync */
+#followBtn.on { border-color: var(--vscode-focusBorder, #007fd4); color: var(--vscode-textLink-foreground, var(--fg)); }
+.follow-hit { outline: 2px solid var(--vscode-focusBorder, #007fd4); outline-offset: 2px; transition: outline-color 1.2s; }
+.opactions { margin: 6px 0 2px; }
+button.small { font-size: 12px; padding: 2px 8px; }

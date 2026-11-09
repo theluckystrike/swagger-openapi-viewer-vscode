@@ -1,0 +1,190 @@
+openapi: 3.1.0
+jsonSchemaDialect: https://spec.openapis.org/oas/3.1/dialect/base
+info:
+  title: Parcel Tracking API
+  version: 2.4.0
+  summary: Track parcels and get status webhooks.
+  description: |
+    OpenAPI 3.1 features in one file.
+
+    - `type` lists with `null`
+    - `webhooks` next to `paths`
+    - `examples` arrays and `const`
+  license:
+    name: MIT
+    identifier: MIT
+  contact:
+    name: API team
+    email: api@example.com
+servers:
+  - url: https://api.example.com/v2
+    description: Production
+  - url: http://localhost:4010
+    description: Local mock
+tags:
+  - name: parcels
+    description: Parcels and their events
+paths:
+  /parcels:
+    get:
+      operationId: listParcels
+      summary: List parcels
+      description: Newest first. Use `cursor` for the next page.
+      tags: [parcels]
+      parameters:
+        - name: cursor
+          in: query
+          description: Cursor from the previous page.
+          schema:
+            type: [string, 'null']
+        - name: limit
+          in: query
+          description: Parcels per page.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: A page of parcels.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Parcel'
+                  next:
+                    type: [string, 'null']
+                    description: Cursor of the next page, or null on the last page.
+    post:
+      operationId: createParcel
+      summary: Create a parcel
+      description: Registers a parcel and returns its tracking number.
+      tags: [parcels]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewParcel'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Parcel'
+        '422':
+          description: The parcel data is not valid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /parcels/{trackingNumber}:
+    parameters:
+      - name: trackingNumber
+        in: path
+        required: true
+        description: Tracking number, 12 characters.
+        schema:
+          type: string
+          pattern: '^[A-Z0-9]{12}$'
+          examples: [AB12CD34EF56]
+    get:
+      operationId: getParcel
+      summary: Get a parcel
+      description: The parcel with its latest status.
+      tags: [parcels]
+      responses:
+        '200':
+          description: The parcel.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Parcel'
+        '404':
+          description: No parcel with this tracking number.
+webhooks:
+  parcelStatusChanged:
+    post:
+      operationId: parcelStatusChanged
+      summary: Parcel status changed
+      description: Sent to your endpoint when a parcel moves to a new status.
+      tags: [parcels]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatusEvent'
+      responses:
+        '204':
+          description: Received.
+components:
+  schemas:
+    NewParcel:
+      type: object
+      required: [weightGrams, destination]
+      properties:
+        weightGrams:
+          type: integer
+          exclusiveMinimum: 0
+        destination:
+          $ref: '#/components/schemas/Address'
+        note:
+          type: [string, 'null']
+          maxLength: 500
+    Parcel:
+      allOf:
+        - $ref: '#/components/schemas/NewParcel'
+        - type: object
+          required: [trackingNumber, status]
+          properties:
+            trackingNumber:
+              type: string
+              examples: [AB12CD34EF56]
+            status:
+              $ref: '#/components/schemas/Status'
+            deliveredAt:
+              type: [string, 'null']
+              format: date-time
+    Status:
+      type: string
+      enum: [created, in_transit, out_for_delivery, delivered, returned]
+    Address:
+      type: object
+      required: [line1, country]
+      properties:
+        line1:
+          type: string
+        city:
+          type: [string, 'null']
+        country:
+          type: string
+          minLength: 2
+          maxLength: 2
+          examples: [TH, DE]
+    StatusEvent:
+      type: object
+      required: [type, trackingNumber, status]
+      properties:
+        type:
+          const: parcel.status_changed
+        trackingNumber:
+          type: string
+        status:
+          $ref: '#/components/schemas/Status'
+        at:
+          type: string
+          format: date-time
+    Problem:
+      type: object
+      properties:
+        title:
+          type: string
+        detail:
+          type: [string, 'null']

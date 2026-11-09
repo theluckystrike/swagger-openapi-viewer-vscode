@@ -2,7 +2,7 @@ test/**
 scripts/**
 samples/**
 images/**
-!images/readme-swagger-dark.png
+!images/readme-editor-dark.png
 node_modules/**
 .github/**
 .e2e/**

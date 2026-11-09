@@ -1,8 +1,8 @@
 {
   "name": "swagger-openapi-viewer",
-  "displayName": "Swagger Viewer & OpenAPI Viewer (OpenAPI Preview, 3.1, $ref)",
-  "description": "Swagger viewer and OpenAPI preview for VS Code. Live Swagger UI or reference layout for OpenAPI 3.1, 3.0 and Swagger 2.0 in YAML or JSON, with external $ref across files, a problem list with line numbers and copyable text. No server, no port, no sign-in, works offline.",
-  "version": "0.1.0",
+  "displayName": "Swagger Editor & OpenAPI Editing (Lint, Spec Preview, 3.1)",
+  "description": "Swagger editor and OpenAPI editor for VS Code: lint with readable rules and quick fixes, IntelliSense, $ref go to definition and rename, and a live Swagger UI preview that follows the cursor. OpenAPI 3.1, 3.0 and Swagger 2.0 in YAML or JSON, offline. Convert 2.0 to 3.0 to 3.1, bundle split specs. Also a Swagger viewer and OpenAPI viewer. No sign-in.",
+  "version": "0.2.0",
   "publisher": "zovo",
   "license": "MIT",
   "icon": "icon.png",
@@ -15,28 +15,28 @@
   },
   "swaggerUiVersion": "5.34.1",
   "categories": [
-    "Visualization",
     "Programming Languages",
     "Linters",
-    "Other"
+    "Visualization",
+    "Snippets"
   ],
   "keywords": [
+    "swagger editor",
+    "openapi editor",
     "swagger",
     "openapi",
+    "openapi lint",
+    "swagger lint",
+    "openapi 3.1",
+    "openapi preview",
     "swagger viewer",
     "openapi viewer",
-    "openapi preview",
-    "swagger preview",
     "swagger ui",
-    "openapi 3.1",
-    "api docs",
-    "yaml",
-    "json",
-    "$ref",
+    "spectral",
+    "convert swagger to openapi",
+    "mock server",
     "offline",
-    "no sign-in",
-    "redoc",
-    "api reference"
+    "openapi ref"
   ],
   "main": "./src/extension.js",
   "activationEvents": [
@@ -47,9 +47,11 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "Try it out and remote $refs stay off in Restricted Mode.",
+      "description": "Try it out, the mock server and remote $refs stay off in Restricted Mode.",
       "restrictedConfigurations": [
-        "openapiViewer.tryItOut"
+        "openapiViewer.tryItOut",
+        "openapiViewer.tryItOutAllowedHosts",
+        "openapiViewer.mock.port"
       ]
     },
     "virtualWorkspaces": true
@@ -59,28 +61,83 @@
       {
         "command": "openapiViewer.showPreviewToSide",
         "title": "Open Preview to the Side",
-        "category": "OpenAPI Viewer",
+        "category": "OpenAPI",
         "icon": "$(open-preview)"
       },
       {
         "command": "openapiViewer.showPreview",
         "title": "Open Preview",
-        "category": "OpenAPI Viewer"
+        "category": "OpenAPI"
       },
       {
         "command": "openapiViewer.openWalkthrough",
         "title": "Get Started",
-        "category": "OpenAPI Viewer"
+        "category": "OpenAPI"
       },
       {
         "command": "openapiViewer.supportDeveloper",
         "title": "Support the developer",
-        "category": "OpenAPI Viewer"
+        "category": "OpenAPI"
       },
       {
         "command": "openapiViewer.moreViewers",
         "title": "More free viewers",
-        "category": "OpenAPI Viewer"
+        "category": "OpenAPI"
+      },
+      {
+        "command": "openapiViewer.convertTo30",
+        "title": "Convert Swagger 2.0 to OpenAPI 3.0",
+        "category": "OpenAPI"
+      },
+      {
+        "command": "openapiViewer.convertTo31",
+        "title": "Convert to OpenAPI 3.1",
+        "category": "OpenAPI"
+      },
+      {
+        "command": "openapiViewer.bundle",
+        "title": "Bundle $refs into one file",
+        "category": "OpenAPI"
+      },
+      {
+        "command": "openapiViewer.breakingChanges",
+        "title": "Compare versions: breaking-change report",
+        "category": "OpenAPI"
+      },
+      {
+        "command": "openapiViewer.mockServer",
+        "title": "Start mock server (127.0.0.1)",
+        "category": "OpenAPI"
+      },
+      {
+        "command": "openapiViewer.stopMockServer",
+        "title": "Stop mock server",
+        "category": "OpenAPI"
+      },
+      {
+        "command": "openapiViewer.copyClientCode",
+        "title": "Copy client code for an operation",
+        "category": "OpenAPI"
+      },
+      {
+        "command": "openapiViewer.unlockWithSponsors",
+        "title": "Unlock Zovo Pro with GitHub Sponsors",
+        "category": "OpenAPI"
+      },
+      {
+        "command": "openapiViewer.getPro",
+        "title": "Get Zovo Pro (USD 19 once, all Zovo extensions)",
+        "category": "OpenAPI"
+      },
+      {
+        "command": "openapiViewer.enterLicenseKey",
+        "title": "Enter Zovo Pro license key",
+        "category": "OpenAPI"
+      },
+      {
+        "command": "openapiViewer.removeLicense",
+        "title": "Remove Zovo Pro license from this editor",
+        "category": "OpenAPI"
       }
     ],
     "keybindings": [
@@ -110,6 +167,11 @@
           "command": "openapiViewer.showPreviewToSide",
           "when": "openapiViewer.isSpec",
           "group": "navigation@9"
+        },
+        {
+          "submenu": "openapiViewer.tools",
+          "when": "openapiViewer.isSpec",
+          "group": "navigation@10"
         }
       ],
       "commandPalette": [
@@ -120,11 +182,81 @@
         {
           "command": "openapiViewer.showPreview",
           "when": "openapiViewer.isSpec || resourceExtname =~ /^\\.(ya?ml|json)$/i"
+        },
+        {
+          "command": "openapiViewer.convertTo30",
+          "when": "openapiViewer.isSpec || resourceExtname =~ /^\\.(ya?ml|json)$/i"
+        },
+        {
+          "command": "openapiViewer.convertTo31",
+          "when": "openapiViewer.isSpec || resourceExtname =~ /^\\.(ya?ml|json)$/i"
+        },
+        {
+          "command": "openapiViewer.bundle",
+          "when": "openapiViewer.isSpec || resourceExtname =~ /^\\.(ya?ml|json)$/i"
+        },
+        {
+          "command": "openapiViewer.breakingChanges",
+          "when": "openapiViewer.isSpec || resourceExtname =~ /^\\.(ya?ml|json)$/i"
+        },
+        {
+          "command": "openapiViewer.mockServer",
+          "when": "openapiViewer.isSpec || resourceExtname =~ /^\\.(ya?ml|json)$/i"
+        },
+        {
+          "command": "openapiViewer.copyClientCode",
+          "when": "openapiViewer.isSpec || resourceExtname =~ /^\\.(ya?ml|json)$/i"
+        },
+        {
+          "command": "openapiViewer.unlockWithSponsors",
+          "when": "openapiViewer.proEnabled"
+        },
+        {
+          "command": "openapiViewer.getPro",
+          "when": "openapiViewer.proEnabled"
+        },
+        {
+          "command": "openapiViewer.enterLicenseKey",
+          "when": "openapiViewer.proEnabled"
+        },
+        {
+          "command": "openapiViewer.removeLicense",
+          "when": "openapiViewer.proEnabled"
+        }
+      ],
+      "openapiViewer.tools": [
+        {
+          "command": "openapiViewer.showPreviewToSide",
+          "group": "1_preview@1"
+        },
+        {
+          "command": "openapiViewer.copyClientCode",
+          "group": "2_tools@1"
+        },
+        {
+          "command": "openapiViewer.breakingChanges",
+          "group": "2_tools@2"
+        },
+        {
+          "command": "openapiViewer.mockServer",
+          "group": "2_tools@3"
+        },
+        {
+          "command": "openapiViewer.convertTo30",
+          "group": "3_convert@1"
+        },
+        {
+          "command": "openapiViewer.convertTo31",
+          "group": "3_convert@2"
+        },
+        {
+          "command": "openapiViewer.bundle",
+          "group": "3_convert@3"
         }
       ]
     },
     "configuration": {
-      "title": "OpenAPI Viewer",
+      "title": "OpenAPI Editor",
       "properties": {
         "openapiViewer.defaultLayout": {
           "type": "string",
@@ -178,7 +310,7 @@
         "openapiViewer.tryItOut": {
           "type": "boolean",
           "default": false,
-          "description": "Show \"Try it out\" in the Swagger UI layout. Requests are sent by VS Code after you confirm each server. Off by default: the preview makes no network requests."
+          "description": "Show \"Try it out\" in the Swagger UI layout. A request is sent by VS Code only after you click Execute and confirm the server, and only to hosts on openapiViewer.tryItOutAllowedHosts. Off by default: the preview makes no network requests."
         },
         "openapiViewer.swaggerUi.docExpansion": {
           "type": "string",
@@ -203,31 +335,82 @@
         "openapiViewer.askForRating": {
           "type": "boolean",
           "default": true,
-          "description": "Ask one time for a Marketplace rating after you have used OpenAPI Viewer on a few files on different days. You can answer \"Later\" or \"No thanks\". Nothing is sent anywhere."
+          "description": "Ask one time for a Marketplace rating after you have used OpenAPI Editor on a few files on different days. You can answer \"Later\" or \"No thanks\". Nothing is sent anywhere."
         },
         "openapiViewer.showSupportLinks": {
           "type": "boolean",
           "default": true,
           "description": "Show the small Sponsor and More free viewers links at the bottom of the preview. Nothing is sent anywhere."
+        },
+        "openapiViewer.lint.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Lint OpenAPI and Swagger files with readable rules (operationId, descriptions, unused components, wrong $ref and more). Add a .spectral.yaml to the workspace folder to turn rules off or change their severity."
+        },
+        "openapiViewer.lint.whenPreviewClosed": {
+          "type": "boolean",
+          "default": true,
+          "description": "Also lint spec files that are open in an editor without a preview. Results go to the Problems panel."
+        },
+        "openapiViewer.preview.followCursor": {
+          "type": "boolean",
+          "default": true,
+          "description": "The preview shows the operation or schema under the cursor, and a click on an operation or schema in the preview moves the cursor to its line. The Follow cursor button in the preview toolbar changes this setting."
+        },
+        "openapiViewer.tryItOutAllowedHosts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "localhost",
+            "127.0.0.1",
+            "[::1]",
+            "*.localhost",
+            "*.local",
+            "*.test",
+            "*.example.com",
+            "petstore.swagger.io",
+            "petstore3.swagger.io"
+          ],
+          "description": "Hosts that Try it out may send requests to. *.example.com matches its subdomains. A request to another host is not sent; you are asked whether to add the host. Every new server is also confirmed once per preview."
+        },
+        "openapiViewer.mock.port": {
+          "type": "number",
+          "default": 4010,
+          "minimum": 0,
+          "maximum": 65535,
+          "description": "Port of the mock server on 127.0.0.1. 0 picks a free port."
         }
       }
     },
     "walkthroughs": [
       {
         "id": "openapiViewer.start",
-        "title": "Get started with OpenAPI Viewer",
-        "description": "Preview OpenAPI and Swagger files in VS Code, offline.",
+        "title": "Get started with the OpenAPI Editor",
+        "description": "Lint, edit and preview OpenAPI and Swagger files in VS Code, offline.",
         "steps": [
           {
             "id": "open",
             "title": "Open a preview",
             "description": "Open a YAML or JSON file that starts with openapi: or swagger:. Click the preview button at the top right of the editor, or press Shift+Alt+P.\n[Find a spec](command:workbench.action.quickOpen?%5B%22.yaml%22%5D)",
             "media": {
-              "image": "images/readme-swagger-dark.png",
-              "altText": "An OpenAPI 3.1 file next to its live Swagger UI preview in VS Code."
+              "image": "images/readme-editor-dark.png",
+              "altText": "A spec with lint problems next to its live preview in VS Code."
             },
             "completionEvents": [
               "onCommand:openapiViewer.showPreviewToSide"
+            ]
+          },
+          {
+            "id": "lint",
+            "title": "Lint and quick fixes",
+            "description": "Problems in a spec show in the Problems panel with the rule name, for example operation-operationId. Press Ctrl+. (Cmd+. on macOS) on a squiggle for a quick fix, or turn a rule off in .spectral.yaml.\n[Show Problems](command:workbench.actions.view.problems)",
+            "media": {
+              "markdown": "walkthrough/lint.md"
+            },
+            "completionEvents": [
+              "onCommand:workbench.actions.view.problems"
             ]
           },
           {
@@ -248,8 +431,22 @@
             "completionEvents": [
               "onCommand:workbench.action.openSettings"
             ]
+          },
+          {
+            "id": "convert",
+            "title": "Convert, bundle and compare",
+            "description": "Right-click in a spec and open the OpenAPI menu: convert Swagger 2.0 to OpenAPI 3.0 or 3.0 to 3.1, bundle a split spec into one file, or compare with a git ref. Every change opens as a diff first.\n[Convert to OpenAPI 3.1](command:openapiViewer.convertTo31)",
+            "media": {
+              "markdown": "walkthrough/convert.md"
+            }
           }
         ]
+      }
+    ],
+    "submenus": [
+      {
+        "id": "openapiViewer.tools",
+        "label": "OpenAPI"
       }
     ]
   },

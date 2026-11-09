@@ -87,7 +87,7 @@ const openPreview = async (rel, { wait = 90000 } = {}) => {
   for (let i = 0; i < 3 && !wv0(); i++) {
     // The editor title button first (what a user clicks), the Command Palette as a fallback.
     const clicked = await vs.wbEval(`(() => { const a = [...document.querySelectorAll('.editor-actions .action-label')].find(x => /Open Preview to the Side/.test(x.getAttribute('aria-label') || x.title || '')); if (a) { a.click(); return true; } return false; })()`);
-    if (!clicked || i > 0) await vs.command('OpenAPI Viewer: Open Preview to the Side');
+    if (!clicked || i > 0) await vs.command('OpenAPI: Open Preview to the Side');
     wv = await vs.waitFor(async () => (await vs.webviews()).find(w => w.title === path.basename(rel) && w.w > 0), 12000);
     if (wv) break;
     await openEditor(rel);

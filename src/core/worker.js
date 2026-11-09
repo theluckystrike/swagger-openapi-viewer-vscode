@@ -1,6 +1,6 @@
 'use strict';
 // Worker thread: runs preview builds off the extension host thread. Messages:
-//   in  { type: 'job', id, rootUri, rootText, maxNodes }      out { type: 'result', id, result } | { type: 'fail', id, message }
+//   in  { type: 'job', id, rootUri, rootText, maxNodes, lint, ruleset }      out { type: 'result', id, result } | { type: 'fail', id, message }
 //   out { type: 'read', id, req, uri }                       in  { type: 'readResult', req, text } | { type: 'readResult', req, error, code }
 const { parentPort } = require('worker_threads');
 const { runJob } = require('./job');
@@ -24,7 +24,7 @@ parentPort.on('message', m => {
       waiting.set(req, { resolve, reject });
       parentPort.postMessage({ type: 'read', id: m.id, req, uri });
     });
-    runJob({ rootUri: m.rootUri, rootText: m.rootText, read, maxNodes: m.maxNodes })
+    runJob({ rootUri: m.rootUri, rootText: m.rootText, read, maxNodes: m.maxNodes, lint: m.lint !== false, ruleset: m.ruleset || null })
       .then(result => parentPort.postMessage({ type: 'result', id: m.id, result }))
       .catch(e => parentPort.postMessage({ type: 'fail', id: m.id, message: String(e && e.stack || e) }));
   }

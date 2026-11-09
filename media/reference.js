@@ -313,7 +313,8 @@
       return el('div', { class: 'cblock' }, el('div', { class: 'ctitle' }, el('span', { text: title }), copy), pre);
     };
 
-    function select(id) {
+    function select(id, quiet) {
+      if (id === current && quiet) return;
       if (current && navEls.get(current)) navEls.get(current).classList.remove('sel');
       current = id;
       const a = navEls.get(id);
@@ -323,7 +324,7 @@
       if (id === 'overview') overview();
       else if (id.startsWith('schema:')) schemaPage(id.slice(7));
       else if (byId.has(id)) operation(byId.get(id));
-      ctx.onSelect && ctx.onSelect(id);
+      ctx.onSelect && ctx.onSelect(id, !!quiet);
     }
 
     function overview() {
@@ -386,6 +387,11 @@
       if (op.operationId) meta.push('operationId ' + op.operationId);
       if (it.kind === 'webhook') meta.push('webhook');
       if (meta.length) doc.append(el('div', { class: 'muted', text: meta.join(' · ') }));
+      if (ctx.snippet && it.kind === 'path') {
+        const b = el('button', { class: 'ghost small codebtn', title: 'Client code for this operation in curl, JavaScript, Python, Go, Java, C# and more', text: 'Copy as code…' });
+        b.addEventListener('click', () => ctx.snippet(it.route, it.method));
+        doc.append(el('div', { class: 'opactions' }, b));
+      }
       if (op.description) doc.append(markdown(op.description, ctx));
       const params0 = [].concat(Array.isArray(it.item.parameters) ? it.item.parameters : [], Array.isArray(op.parameters) ? op.parameters : []).map(p => deref(spec, p)).filter(p => p && typeof p === 'object' && !p.__missing);
       const params = [];
@@ -493,9 +499,12 @@
 
     ctx.goSchema = ref => { const id = 'schema:' + refName(ref); if (navEls.has(id)) select(id); };
     const start = ctx.selected && (ctx.selected === 'overview' || navEls.has(ctx.selected)) ? ctx.selected : 'overview';
-    select(start);
+    select(start, true);
     return {
       filter, select, items: () => items.length, current: () => current,
+      /** Select an item from the editor cursor without sending a jump back. */
+      show(id) { if (navEls.has(id) || id === 'overview') select(id, true); return navEls.has(id); },
+      itemOf(id) { return byId.get(id) || null; },
       expandAll(v) { for (const t of doc.querySelectorAll('.tog:not(.leaf)')) if (t.classList.contains('open') !== v) t.click(); },
     };
   }
