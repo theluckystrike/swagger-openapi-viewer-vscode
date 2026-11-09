@@ -240,3 +240,25 @@ test('rename in Swagger 2.0 JSON renames a definition', async () => {
   assert.equal(mine.length, 3); // the key and 2 refs
   for (const e of mine) assert.equal(lines[e.range.start.line].slice(e.range.start.character, e.range.end.character), 'NewPet');
 });
+
+test('a symlink inside the workspace that leads out of it is not read by hover, definition or rename (VER15)', async (t) => {
+  const base = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'nb6-link-')));
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }));
+  const root = path.join(base, 'ws'), outside = path.join(base, 'outside');
+  fs.mkdirSync(root); fs.mkdirSync(outside);
+  fs.writeFileSync(path.join(outside, 'secret.yaml'), 'components:\n  schemas:\n    Secret:\n      type: object\n      description: OUTSIDE-SECRET\n');
+  fs.writeFileSync(path.join(outside, 'evil.yaml'), "a:\n  $ref: '../api.yaml#/components/schemas/Pet'\n");
+  fs.symlinkSync(outside, path.join(root, 'linked'));
+  fs.writeFileSync(path.join(root, 'api.yaml'), "openapi: 3.0.3\npaths: {}\ncomponents:\n  schemas:\n    Pet:\n      type: object\n    Use:\n      $ref: 'linked/secret.yaml#/components/schemas/Secret'\n");
+  const { providers } = setup(root);
+  const doc = makeDoc(path.join(root, 'api.yaml'));
+  const line = doc.getText().split('\n').findIndex(l => l.includes('linked/secret.yaml'));
+  const pos = new Position(line, doc.lineAt(line).text.indexOf('secret.yaml') + 2);
+  const h = await providers.hover.provideHover(doc, pos);
+  assert.ok(!h || !/OUTSIDE-SECRET/.test(h.contents.map(c => c.value || c).join('\n')), 'hover shows the outside file');
+  const loc = await providers.definition.provideDefinition(doc, pos);
+  assert.ok(!loc || !String(loc.uri && loc.uri.path).includes('secret.yaml'), 'definition goes to the outside file');
+  const keyLine = doc.getText().split('\n').indexOf('    Pet:');
+  const edit = await providers.rename.provideRenameEdits(doc, new Position(keyLine, 6), 'Animal');
+  assert.ok(edit.edits.every(e => !e.uri.includes('/linked/')), 'rename edits a file outside the workspace');
+});

@@ -2,6 +2,7 @@
 // Editor features for OpenAPI and Swagger files: outline, key and value completion, $ref completion, go to
 // definition and hover on $ref, and rename of a component across files. Reads only workspace files, never the network.
 // Big files: YAML over 1 MB is read with a one-pass key scan instead of a full parse, so no provider blocks the editor.
+const fs = require('fs');
 const path = require('path');
 const { pathAt, yamlFind, parseLine, jsonSiblingKeys } = require('./core/cursor');
 const { objectTypeAt, fieldsFor, fieldOf, STATUS_CODES, MEDIA_TYPES } = require('./core/schema-keys');
@@ -105,7 +106,16 @@ function registerLanguage(opts) {
     const target = fromUri.with({ path: path.posix.normalize(path.posix.join(path.posix.dirname(fromUri.path), f)), query: '', fragment: '' });
     return inside(target, rootOf(fromUri)) ? target : null;
   }
+  /** True when a file: URI inside the workspace is a symlink (or under one) that leads out of it. */
+  function linksOutside(uri) {
+    if (uri.scheme !== 'file') return false;
+    try {
+      const real = fs.realpathSync.native(uri.fsPath), realRoot = fs.realpathSync.native(rootOf(uri).fsPath);
+      return real !== realRoot && !real.startsWith(realRoot + path.sep);
+    } catch { return false; }
+  }
   async function readText(uri) {
+    if (linksOutside(uri)) return null;
     const open = vscode.workspace.textDocuments.find(d => d.uri.toString() === uri.toString());
     if (open) return open.getText();
     const st = await vscode.workspace.fs.stat(uri);

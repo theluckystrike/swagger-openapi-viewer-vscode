@@ -7,9 +7,10 @@
 - The preview follows the cursor, and a click on an operation or schema in the preview moves the cursor to its line. Both layouts.
 - Convert Swagger 2.0 to OpenAPI 3.0 and 3.0 to 3.1, bundle a split spec into one file, and compare versions (breaking-change report against a git ref or a file). Every change opens as a diff first.
 - Mock server on 127.0.0.1 and client code for an operation in 10 languages.
-- Try it out sends only to hosts on openapiViewer.tryItOut.allowedHosts (local hosts by default) and only after you confirm.
+- Try it out sends only to hosts on openapiViewer.tryItOutAllowedHosts (local hosts by default) and only after you confirm.
 - New name: Swagger Editor & OpenAPI Editing (Lint, Spec Preview, 3.1). The extension id is the same.
 - Rating ask v2.1, support links with Rate first, related tools (Load Testing, HAR Viewer).
+- Hover, go to definition and rename do not read a file through a symlink that leads out of the workspace (the preview already refused it).
 
 ## 0.1.1
 
